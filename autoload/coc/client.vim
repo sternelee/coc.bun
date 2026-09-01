@@ -112,6 +112,14 @@ function! coc#client#check_version() abort
   let msgs = []
   if v:shell_error
     let msgs = ['Unexpected result from "'.cmd.'"'] + split(output, '\n')
+  elseif fnamemodify(node, ':t') =~? '^bun\%(\.exe\)\?$'
+    " bun --version prints `1.2.0` without the `v` prefix
+    let ms = matchlist(output, '\(\d\+\).\(\d\+\).\(\d\+\)')
+    if empty(ms)
+      let msgs = ['Unable to get bun version by "'.cmd.'" please install Bun from https://bun.sh']
+    elseif str2nr(ms[1]) < 1 || (str2nr(ms[1]) == 1 && str2nr(ms[2]) < 2)
+      let msgs = ['Current Bun version '.trim(output).' < 1.2.0 ', 'Please upgrade your Bun']
+    endif
   else
     let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
     if empty(ms)

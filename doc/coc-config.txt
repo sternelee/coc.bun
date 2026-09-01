@@ -716,8 +716,10 @@ Language server started with a Node module: ~
 
 	- "args": Extra arguments used when forking the JavaScript module.
 
-	- "runtime": Absolute path of the node runtime; coc.nvim's node
-	  runtime is used by default.
+	- "runtime": Absolute path of the runtime used to fork the
+	  JavaScript module (node or bun); the runtime of the coc service
+	  process is used by default. Useful when coc.nvim runs on Bun but
+	  a language server only works with node, or the other way around.
 
 	- "execArgv": ARGV passed to node on fork, normally used for
 	  debugging. Example: `["--nolazy", "--inspect-brk=6045"]`.

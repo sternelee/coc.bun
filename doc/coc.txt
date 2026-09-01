@@ -2058,11 +2058,18 @@ g:coc_selectmode_mapping				*g:coc_selectmode_mapping*
 
 g:coc_node_path						*g:coc_node_path*
 
-	Path to the node executable used to start the coc service, for
-	example: >
+	Path to the executable used to start the coc service. This is the
+	node executable by default, for example: >
 
 	let g:coc_node_path = '/usr/local/opt/node@12/bin/node'
 <
+	The Bun executable is also supported as the service runtime
+	(LSP client and extension backend), Bun 1.2.0 or later is
+	required: >
+
+	let g:coc_node_path = 'bun'
+<
+
 	Use this when coc has problems with your system node.
 
 	Note: you can use `~` as home directory.

@@ -14,6 +14,7 @@ import mcp from '../mcp'
 import Highlighter from '../model/highlighter'
 import snippetManager from '../snippets/manager'
 import { defaultValue } from '../util'
+import { runtimeName } from '../util/runtime'
 import { CONFIG_FILE_NAME, isVim } from '../util/constants'
 import { directoryNotExists } from '../util/errors'
 import { isDirectory } from '../util/fs'
@@ -274,7 +275,7 @@ export default class WorkspaceHandler {
     let out = await this.nvim.call('execute', ['version']) as string
     let first = out.trim().split(/\r?\n/, 2)[0].replace(/\(.*\)/, '').trim()
     lines.push('vim version: ' + first + `${isVim ? ' ' + workspace.env.version : ''}`)
-    lines.push('node version: ' + process.version)
+    lines.push('runtime: ' + runtimeName)
     lines.push('coc.nvim version: ' + version)
     lines.push('coc.nvim directory: ' + path.dirname(__dirname))
     lines.push('term: ' + defaultValue(process.env.TERM_PROGRAM, process.env.TERM))

@@ -19,6 +19,7 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import { HoverTarget, UltiSnippetOption } from './types'
 import { Disposable, disposeAll } from './util'
+import { runtimeName } from './util/runtime'
 import window, { Window } from './window'
 import workspace, { Workspace } from './workspace'
 const logger = createLogger('plugin')
@@ -269,7 +270,7 @@ export default class Plugin {
     nvim.resumeNotification(false, true)
     void mcp.init(mcpStarted)
     const duration = typeof global.__starttime === 'number' ? Date.now() - global.__starttime : 0
-    logger.info(`coc.nvim initialized with node: ${process.version} after`, duration)
+    logger.info(`coc.nvim initialized with ${runtimeName} after`, duration)
     this.ready = true
     await events.fire('ready', [])
   }

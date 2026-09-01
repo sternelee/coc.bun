@@ -45,20 +45,32 @@ function! s:checkEnvironment() abort
   let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
   if !executable(node)
     let valid = 0
-    call s:report_error('Executable node.js not found, install node.js from http://nodejs.org/')
+    call s:report_error('Executable node.js not found, install node.js from http://nodejs.org/ or Bun from https://bun.sh')
   endif
   let output = system(shellescape(node) . ' --version')
   if v:shell_error && output !=# ""
     let valid = 0
     call s:report_error(output)
   endif
-  let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
-  if empty(ms)
-    let valid = 0
-    call s:report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/')
-  elseif str2nr(ms[1]) < 22 || (str2nr(ms[1]) == 22 && str2nr(ms[2]) < 15)
-    let valid = 0
-    call s:report_warn('Node.js version '.trim(output).' < 22.15.0, please upgrade node.js')
+  if fnamemodify(node, ':t') =~? '^bun\%(\.exe\)\?$'
+    " bun --version prints `1.2.0` without the `v` prefix
+    let ms = matchlist(output, '\(\d\+\).\(\d\+\).\(\d\+\)')
+    if empty(ms)
+      let valid = 0
+      call s:report_error('Unable to detect version of bun, make sure your bun executable is from https://bun.sh')
+    elseif str2nr(ms[1]) < 1 || (str2nr(ms[1]) == 1 && str2nr(ms[2]) < 2)
+      let valid = 0
+      call s:report_warn('Bun version '.trim(output).' < 1.2.0, please upgrade bun')
+    endif
+  else
+    let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
+    if empty(ms)
+      let valid = 0
+      call s:report_error('Unable to detect version of node, make sure your node executable is http://nodejs.org/')
+    elseif str2nr(ms[1]) < 22 || (str2nr(ms[1]) == 22 && str2nr(ms[2]) < 15)
+      let valid = 0
+      call s:report_warn('Node.js version '.trim(output).' < 22.15.0, please upgrade node.js')
+    endif
   endif
   if valid
     call s:report_ok('Environment check passed')

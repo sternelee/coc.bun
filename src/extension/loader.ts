@@ -1,6 +1,7 @@
 'use strict'
 import { createLogger } from '../logger'
 import { fs, path, vm } from '../util/node'
+import { isBun } from '../util/runtime'
 import type { Disposable } from '../util/protocol'
 import type { Context, Module as VMModule } from 'vm'
 import { createExtensionConsole, getConsoleFacade } from './console'
@@ -122,6 +123,23 @@ function removedGlobalStub(name: string) {
 }
 
 /**
+ * Define an own property on the facade. Bun defines some process members
+ * (including symbol keys like `Symbol.toStringTag` and EventEmitter methods)
+ * as getter-only accessors on `Process.prototype`; plain assignment to the
+ * facade instance walks the prototype chain and throws
+ * `TypeError: Attempted to assign to readonly property` on JavaScriptCore.
+ * `Object.defineProperty` always creates an own property in both runtimes.
+ */
+function defineFacadeProperty(target: any, key: PropertyKey, value: unknown): void {
+  Object.defineProperty(target, key, {
+    value,
+    writable: true,
+    enumerable: true,
+    configurable: true
+  })
+}
+
+/**
  * Process facade exposed to extensions as the `process` global and returned
  * by `require('process')` / `require('node:process')`.
  */
@@ -129,18 +147,18 @@ export function createProcessFacade(): NodeJS.Process {
   const facade: any = new (process as any).constructor()
   for (let key of Reflect.ownKeys(process)) {
     if (typeof key === 'string' && key.startsWith('_')) continue
-    facade[key] = process[key]
+    defineFacadeProperty(facade, key, (process as any)[key])
   }
   REMOVED_GLOBALS.forEach(name => {
-    facade[name] = removedGlobalStub(name)
+    defineFacadeProperty(facade, name, removedGlobalStub(name))
   })
-  facade['chdir'] = () => {}
-  facade['umask'] = (mask?: number) => {
+  defineFacadeProperty(facade, 'chdir', () => {})
+  defineFacadeProperty(facade, 'umask', (mask?: number) => {
     if (typeof mask !== 'undefined') {
       throw new Error('Cannot use process.umask() to change mask (read-only)')
     }
     return process.umask()
-  }
+  })
   return facade
 }
 
@@ -218,6 +236,9 @@ export class ExtensionLoader {
    */
   public resolve(request: string, parent: ExtensionCommonJSModule, options?: any): string {
     if (this.isBuiltin(request)) return request
+    // Bun's Module._resolveFilename segfaults when the options argument is
+    // present; drop it there (see also resolveExtensionModule in esm.ts).
+    if (isBun) options = undefined
     return Module._resolveFilename(request, this.parentModule(parent), false, options)
   }
 

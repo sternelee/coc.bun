@@ -2,6 +2,14 @@
 
 Notable changes of coc.nvim:
 
+## 2026-09-01
+
+- Add Bun runtime support: the coc service process (LSP client and
+  extension backend) can run on Bun by `let g:coc_node_path = 'bun'`,
+  Bun 1.2.0 or later required. JavaScript language servers forked from
+  the service process follow the host runtime; the `runtime` field of a
+  module-based language server can select node or bun per server.
+
 ## 2026-08-27
 
 - Support day-based npm `min-release-age` cooldowns and

@@ -677,6 +677,12 @@ function! s:ShowInfo()
     let node = get(g:, 'coc_node_path', $COC_NODE_PATH == '' ? 'node' : $COC_NODE_PATH)
     if !executable(node)
       call add(lines, 'Error: '.node.' is not executable!')
+    elseif fnamemodify(node, ':t') =~? '^bun\%(\.exe\)\?$'
+      let output = trim(system(shellescape(node) . ' --version'))
+      let ms = matchlist(output, '\(\d\+\).\(\d\+\).\(\d\+\)')
+      if empty(ms) || str2nr(ms[1]) < 1 || (str2nr(ms[1]) == 1 && str2nr(ms[2]) < 2)
+        call add(lines, 'Error: Bun version '.output.' < 1.2.0, please upgrade bun')
+      endif
     else
       let output = trim(system(shellescape(node) . ' --version'))
       let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')

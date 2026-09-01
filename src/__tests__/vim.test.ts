@@ -592,6 +592,33 @@ describe('client API', () => {
     }
   })
 
+  it('runs bun version checks without reporting an error', async t => {
+    let dir = path.join(os.tmpdir(), `coc bun check-${crypto.randomUUID()}`)
+    fs.mkdirSync(dir, { recursive: true })
+    let bun = path.join(dir, 'bun')
+    fs.writeFileSync(bun, '#!/bin/sh\necho "1.2.0"\n', { mode: 0o755 })
+    let saved = await nvim.eval('exists("g:coc_node_path") ? g:coc_node_path : ""') as string
+    try {
+      let code = [
+        `let g:coc_node_path = '${bun}'`,
+        'let g:coc_stderr_before_len = len(get(coc#client#get_client(\'coc\'), \'stderr\', []))',
+        "call coc#client#check_version()",
+        'let g:coc_stderr_after_len = len(get(coc#client#get_client(\'coc\'), \'stderr\', []))'
+      ].join('\n')
+      await nvim.exec(code)
+      let [beforeLen, afterLen] = await nvim.call('eval', ['[g:coc_stderr_before_len, g:coc_stderr_after_len]']) as [number, number]
+      // check_version must parse the bun version without reporting an error
+      assert.strictEqual(afterLen, beforeLen)
+    } finally {
+      if (saved === '') {
+        await nvim.exec('unlet g:coc_node_path')
+      } else {
+        await nvim.setVar('coc_node_path', saved)
+      }
+      fs.rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   it('rejects pending async callbacks once when the connection detaches', async t => {
     let code = [
       "call coc#client#create('fake', [])",

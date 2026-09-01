@@ -1,5 +1,6 @@
 'use strict'
 import { fs, path, vm } from '../util/node'
+import { isBun } from '../util/runtime'
 import type { Module as VMModule, SourceTextModule, SyntheticModule } from 'vm'
 import { fileURLToPath, pathToFileURL } from 'url'
 import { getConsoleFacade } from './console'
@@ -30,8 +31,9 @@ const Module: any = require('module')
 export function ensureVMModules(): void {
   if (typeof vm.SourceTextModule !== 'function' || typeof vm.SyntheticModule !== 'function') {
     throw new Error(
-      'coc.nvim requires Node.js VM modules support for ESM extensions; ' +
-      'start Node with --experimental-vm-modules'
+      'coc.nvim requires VM modules support for ESM extensions; ' +
+      'when running on Node.js, start Node with --experimental-vm-modules; ' +
+      'when running on Bun, upgrade to Bun 1.2.0 or later'
     )
   }
 }
@@ -206,7 +208,15 @@ export function resolveExtensionModule(
   record.id = parentFile
   record.paths = Module._nodeModulePaths(path.dirname(parentFile))
   let conditions = mode === 'import' ? new Set(['coc.nvim', 'node', 'import']) : new Set(['coc.nvim', 'node', 'require'])
-  let filename = Module._resolveFilename(request, record, false, { conditions })
+  // Bun's Module._resolveFilename segfaults when the options argument is
+  // present at all (even `{}`), so Bun resolves with its default `node` /
+  // `require` conditions. That resolves the same files for every package
+  // whose `exports` map has a `require` (or default) entry, but an
+  // import-only `exports` map fails with module-not-found on Bun while Node
+  // resolves it via the `import` condition.
+  let filename = isBun
+    ? Module._resolveFilename(request, record, false)
+    : Module._resolveFilename(request, record, false, { conditions })
   let normalized = tryRealpath(filename)
   return { type: 'file', filename: normalized, format: resolveModuleFormat(normalized) }
 }
